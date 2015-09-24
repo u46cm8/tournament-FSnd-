@@ -1,3 +1,0 @@
-from tournament import *
-
-registerPlayer('Kam')
