@@ -9,13 +9,16 @@ import bleach
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+    DB = psycopg2.connect("dbname=tournament")
+    c = DB.cursor()
+    return c, DB
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    DB = connect()
-    c = DB.cursor()
+
+    c, DB = connect()
+
     c.execute('delete from matches;')
     DB.close()
 
@@ -23,8 +26,8 @@ def deleteMatches():
 def deletePlayers():
     """Remove all the player records from the database."""
 
-    DB = connect()
-    c = DB.cursor()
+    c, DB = connect()
+
     c.execute('delete from players;')
     DB.commit()
     DB.close()
@@ -32,8 +35,8 @@ def deletePlayers():
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    DB = connect()
-    c = DB.cursor()
+
+    c, DB = connect()
 
 # using count to record the number of rows as num
 
@@ -53,9 +56,8 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    DB = connect()
-    c = DB.cursor()
 
+    c, DB = connect()
 # cleaning the input to make sure there are no sql commands
 
     name = bleach.clean(name)
@@ -67,12 +69,6 @@ def registerPlayer(name):
 # Getting the information of this player seprately
 
     c.execute("select * from players where name = (%s)", (name,))
-    row = c.fetchall()
-    f_key = (row[0])[-1]
-
-# making a record of player matches which is nessecary to make a complete entry
-
-    c.execute("Insert into matches values (%s,0,0)", (f_key,))
 
     DB.commit()
     DB.close()
@@ -93,8 +89,8 @@ def playerStandings():
         matches: the number of matches the player has played
     """
 
-    DB = connect()
-    c = DB.cursor()
+    c, DB = connect()
+
     c.execute('select * from standings;')
     rows = c.fetchall()
     DB.close()
@@ -110,12 +106,10 @@ def reportMatch(winner, loser):
       loser:  the id number of the player who lost
     """
 
-    DB = connect()
-    c = DB.cursor()
-    c.execute('update matches set wins = wins+1 where id = %s;',
-              (str(winner),))
-    c.execute('update matches set losses = losses+1 where id = %s;',
-              (str(loser),))
+    c, DB = connect()
+
+    c.execute('insert into matches values( %s,  %s);',
+               (str(winner), (str(loser),)))
     DB.commit()
     DB.close()
 
@@ -130,15 +124,14 @@ def swissPairings():
     to him or her in the standings.
 
     Returns:
-      A list of tuples, each of which contains (id1, name1, id2, name2)
-        id1: the first player's unique id
-        name1: the first player's name
-        id2: the second player's unique id
-        name2: the second player's name
+       A list of tuples, each of which contains (id1, name1, id2, name2)
+       id1: the first player's unique id
+       name1: the first player's name
+       id2: the second player's unique id
+       name2: the second player's name
     """
 
-    DB = connect()
-    c = DB.cursor()
+    c, DB = connect()
     c.execute('''select a.id, a.name, b.id, b.name from standings as a,
 standings as b where a.id > b.id and a.wins = b.wins and
 a.matches = b.matches order by a.wins desc;''')
