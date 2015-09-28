@@ -19,7 +19,7 @@ def deleteMatches():
 
     c, DB = connect()
 
-    c.execute('delete from matches;')
+    c.execute('DELETE FROM matches;')
     DB.close()
 
 
@@ -28,7 +28,7 @@ def deletePlayers():
 
     c, DB = connect()
 
-    c.execute('delete from players;')
+    c.execute('TRUNCATE TABLE players CASCADE;')
     DB.commit()
     DB.close()
 
@@ -40,7 +40,9 @@ def countPlayers():
 
 # using count to record the number of rows as num
 
-    c.execute('select count(*) as num from players;')
+    query = 'SELECT count(*) FROM players;'
+    c.execute(query)
+
     rows = c.fetchall()
     DB.close()
     for row in rows:
@@ -63,9 +65,10 @@ def registerPlayer(name):
     name = bleach.clean(name)
 
 # Main action is the record a new player
-
-    c.execute("INSERT into players values (%s)", (name,))
-
+    query = "INSERT INTO players (name) VALUES (%s);"
+    param = (name,)
+    c.execute(query, param)
+ 
 # Getting the information of this player seprately
 
     c.execute("select * from players where name = (%s)", (name,))
@@ -91,7 +94,7 @@ def playerStandings():
 
     c, DB = connect()
 
-    c.execute('select * from standings;')
+    c.execute('SELECT * FROM standings;')
     rows = c.fetchall()
     DB.close()
     return rows
@@ -108,8 +111,10 @@ def reportMatch(winner, loser):
 
     c, DB = connect()
 
-    c.execute('insert into matches values( %s,  %s);',
-               (str(winner), (str(loser),)))
+    query = 'insert into matches values( %s,  %s);'
+    param = (str(winner), (str(loser),))
+    c.execute(query, param)
+
     DB.commit()
     DB.close()
 
@@ -132,9 +137,9 @@ def swissPairings():
     """
 
     c, DB = connect()
-    c.execute('''select a.id, a.name, b.id, b.name from standings as a,
-standings as b where a.id > b.id and a.wins = b.wins and
-a.matches = b.matches order by a.wins desc;''')
+    c.execute('''SELECT a.id, a.name, b.id, b.name FROM standings AS a,
+standings AS b where a.id > b.id AND a.wins = b.wins AND
+a.matches = b.matches ORDER BY a.wins desc;''')
     rows = c.fetchall()
     DB.close()
     return rows
